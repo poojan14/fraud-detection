@@ -461,20 +461,13 @@ figure.dimg figcaption{font-size:14px; color:var(--muted); margin-top:6px}
     <div class="box teal"><h3>A learning system</h3><ul class="clean"><li>Reads millions of past transactions</li><li>Is told which were confirmed as fraud</li><li>Works out which combinations accompany fraud</li><li>Improves as new outcomes are recorded</li></ul></div>
   </div>
   <p style="margin-top:16px">The system reads far more and never tires. It has no judgement, no context and no common sense; those stay with the officer.</p>
-  <h3 style="margin-top:22px">The same idea, stated precisely</h3>
-  <div class="tw"><table>
-    <thead><tr><th>Symbol</th><th>Meaning</th><th>In fraud terms</th></tr></thead>
-    <tbody>
-      <tr><td><code>x ∈ ℝᵈ</code></td><td>Feature vector for one observation</td><td>A scored transaction, claim, login or account</td></tr>
-      <tr><td><code>y ∈ {0,1}</code></td><td>Label</td><td>1 = confirmed fraud, 0 = presumed genuine</td></tr>
-      <tr><td><code>f(x; θ)</code></td><td>Model with parameters θ</td><td>The scorer in the authorisation path</td></tr>
-      <tr><td><code>p̂ = P(y=1|x)</code></td><td>Predicted probability</td><td>The fraud score, before any threshold</td></tr>
-      <tr><td><code>τ</code></td><td>Decision threshold</td><td>Score above which a payment is held or challenged</td></tr>
-      <tr><td><code>π</code></td><td>Base rate P(y=1)</td><td>Fraud prevalence, typically below 0.01</td></tr>
-    </tbody></table></div>
-  <div class="formula">f* = argmin<sub>f</sub> 𝔼<sub>(x,y)~P</sub> [ ℓ( f(x), y ) ]</div>
-  <p class="small">We want the function with the lowest expected loss on <i>new</i> data from the same distribution. We can never observe that distribution, only a finite sample of it. Everything that follows is an attempt to approximate it honestly.</p>
-  <div class="key"><b>Practical reading:</b> a model does not learn “fraud”. It learns the conditional distribution of a label given features, in one portfolio, during one period. Throughout, the <b>positive class is fraud</b>, the rare class.</div>
+  <h3 style="margin-top:22px">What the system is actually doing</h3>
+  <div class="grid g3">
+    <div class="box"><h3>It reads clues</h3><p class="small">For each transaction it takes what is known at that moment: amount, hour, channel, device, and how all of it compares with the customer's own history.</p></div>
+    <div class="box"><h3>It gives a score</h3><p class="small">Not "fraud" or "not fraud", but a number for how much this case resembles past confirmed fraud.</p></div>
+    <div class="box"><h3>The institution sets the line</h3><p class="small">Above which score do we act, and how? That line is a policy decision, reviewed as often as fraud losses are.</p></div>
+  </div>
+  <div class="key"><b>Practical reading:</b> a system does not learn “fraud”. It learns what past confirmed fraud looked like, in one portfolio, during one period. Change the portfolio or the period and its judgement weakens.</div>
 </section>
 
 <section class="slide" data-title="Three modes of learning" data-part="2 · AI & ML foundations">
@@ -496,8 +489,8 @@ figure.dimg figcaption{font-size:14px; color:var(--muted); margin-top:6px}
   <div class="part p-m2">Module 2 · AI &amp; ML foundations</div>
   <h2>A fraud engine publishes a score, not a verdict</h2>
   <div class="grid g2">
-    <div class="box teal"><h3>Classification: a category</h3><ul class="clean small"><li>Is this transaction fraudulent?</li><li>Which typology does this claim match?</li><li>Is this identity document genuine?</li></ul><p class="small" style="margin:0"><b>Metrics:</b> precision, recall, F1, AUC-PR, log loss</p></div>
-    <div class="box amber"><h3>Regression: a number</h3><ul class="clean small"><li>Expected loss on this exposure</li><li>Likely settlement value of a claim</li><li>Tomorrow's alert volume, for staffing</li></ul><p class="small" style="margin:0"><b>Metrics:</b> RMSE, MAE, R², quantile loss</p></div>
+    <div class="box teal"><h3>Classification: a category</h3><ul class="clean small"><li>Is this transaction fraudulent?</li><li>Which typology does this claim match?</li><li>Is this identity document genuine?</li></ul><p class="small" style="margin:0"><b>Judged on:</b> how much of the fraud it catches, and how many genuine customers it disturbs</p></div>
+    <div class="box amber"><h3>Regression: a number</h3><ul class="clean small"><li>Expected loss on this exposure</li><li>Likely settlement value of a claim</li><li>Tomorrow's alert volume, for staffing</li></ul><p class="small" style="margin:0"><b>Judged on:</b> how far the predicted number is from the real one, on average, quantile loss</p></div>
   </div>
   <div class="key"><b>Who owns the threshold?</b> Risk and compliance, not the modelling team. Moving it trades customer friction against loss, and that trade is a business judgement, not a technical one. The model is fixed at training time; the threshold is a live control.</div>
   <div class="block"><h3>Quick check</h3><div class="grid g2" id="crQuiz"></div><p class="score" id="crScore"></p></div>
@@ -505,33 +498,33 @@ figure.dimg figcaption{font-size:14px; color:var(--muted); margin-top:6px}
 
 <section class="slide" data-title="Loss, risk and generalisation" data-part="2 · AI & ML foundations">
   <div class="part p-m2">Module 2 · AI &amp; ML foundations</div>
-  <h2>What the optimiser is actually rewarded for</h2>
-  <p class="lede">The loss function defines what “good” means during training. Choosing it is a modelling decision, not a default.</p>
+  <h2>What the system is rewarded for during training</h2>
+  <p class="lede">Training means correcting the system whenever it gets a past case wrong. What counts as “wrong” is a choice, and it decides the behaviour you end up with.</p>
   <div class="tw"><table>
-    <thead><tr><th>Loss</th><th>Form</th><th>Why it matters in fraud</th></tr></thead>
+    <thead><tr><th>What training is told to minimise</th><th>Effect on the finished system</th></tr></thead>
     <tbody>
-      <tr><td><b>Log loss</b></td><td><code>−[y log p̂ + (1−y) log(1−p̂)]</code></td><td>A proper scoring rule, so it yields calibrated probabilities. The default.</td></tr>
-      <tr><td><b>Weighted cross-entropy</b></td><td><code>−[w·y log p̂ + (1−y) log(1−p̂)]</code></td><td>Raises the price of missing fraud. The simplest imbalance correction.</td></tr>
-      <tr><td><b>Focal loss</b></td><td><code>−α(1−p̂)^γ y log p̂ − …</code></td><td>Down-weights easy negatives so learning concentrates on hard cases.</td></tr>
-      <tr><td><b>Expected cost</b></td><td><code>C_FN·FN + C_FP·FP</code></td><td>Encodes the real economics when both error costs are known.</td></tr>
+      <tr><td><b>Plain error on every case</b></td><td>The default. With fraud under 1%, the system can score well simply by rarely saying fraud.</td></tr>
+      <tr><td><b>Missed fraud counted as more serious</b></td><td>It catches more fraud and raises more false alarms. The simplest and most common correction.</td></tr>
+      <tr><td><b>Attention on the hard cases</b></td><td>Obviously genuine transactions stop dominating training, so learning concentrates where it matters.</td></tr>
+      <tr><td><b>The actual rupee cost of each mistake</b></td><td>The most honest option when the cost of a missed fraud and of a blocked customer are both known.</td></tr>
     </tbody></table></div>
-  <h3 style="margin-top:24px">Empirical risk and the generalisation gap</h3>
-  <div class="formula">R̂(f) = (1/n) Σ ℓ( f(xᵢ), yᵢ ) &nbsp;&nbsp;&nbsp; R(f) ≤ R̂(f) + complexity_penalty(𝓕, n)</div>
+  <h3 style="margin-top:24px">Why more rows is not the same as more data</h3>
+  
   <div class="grid g3">
-    <div class="box"><h3>Implication 1</h3><p class="small">A flexible enough model can drive training error to zero while learning nothing transferable. Perfect training accuracy is a warning.</p></div>
-    <div class="box"><h3>Implication 2</h3><p class="small">With fraud under 1%, the <b>effective sample size is the number of positives</b>. Ten million rows with 800 frauds is a small dataset.</p></div>
-    <div class="box"><h3>Implication 3</h3><p class="small">Budget model complexity against the positives available. This is why modest-depth boosted trees beat large networks on most fraud tables.</p></div>
+    <div class="box"><h3>Implication 1</h3><p class="small">A complicated enough system can get every past case right and still be useless tomorrow. Perfect performance on training data is a warning sign.</p></div>
+    <div class="box"><h3>Implication 2</h3><p class="small">What the system learns from is the <b>confirmed frauds</b>, not the total rows. Ten million transactions containing 800 confirmed frauds is a small dataset.</p></div>
+    <div class="box"><h3>Implication 3</h3><p class="small">Keep the method as simple as the evidence allows. This is why straightforward methods usually beat elaborate ones on transaction data.</p></div>
   </div>
 </section>
 
 <section class="slide" data-title="Bias, variance and overfitting" data-part="2 · AI & ML foundations">
   <div class="part p-m2">Module 2 · AI &amp; ML foundations</div>
-  <h2>Bias, variance and overfitting, live</h2>
-  <div class="formula">𝔼[(y − f̂(x))²] = Bias[f̂(x)]² + Var[f̂(x)] + σ²</div>
+  <h2>Learning too little, and learning too much</h2>
+  
   <div class="grid g3">
-    <div class="box"><h3>High bias: underfitting</h3><p class="small">Too rigid for the boundary. Poor on training and validation. A single shallow tree on a portfolio with many typologies.</p></div>
-    <div class="box coral"><h3>High variance: overfitting</h3><p class="small">Memorises sample noise. Excellent in training, poor in validation. A deep unpruned tree fitting individual merchant IDs.</p></div>
-    <div class="box"><h3>Irreducible error</h3><p class="small">Genuine ambiguity: a legitimate customer behaving, on one transaction, exactly as a fraudster would.</p></div>
+    <div class="box"><h3>Underfitting: too simple</h3><p class="small">Too crude to capture the pattern, so it performs poorly everywhere. One simple rule for a portfolio with many different frauds.</p></div>
+    <div class="box coral"><h3>Overfitting: memorising</h3><p class="small">It memorises past cases instead of the pattern. Excellent on the data it was built from, poor on anything new.</p></div>
+    <div class="box"><h3>The part nobody can fix</h3><p class="small">Genuine ambiguity: an honest customer behaving, on one transaction, exactly as a fraudster would.</p></div>
   </div>
   <div class="lab">
     <div class="labhead"><span class="badge">Live</span><strong>Train a real decision tree on 600 transactions</strong></div>
@@ -548,13 +541,13 @@ figure.dimg figcaption{font-size:14px; color:var(--muted); margin-top:6px}
     <p id="tVerdict" class="small" style="margin-top:12px"></p>
     <details class="rev" style="margin-top:12px"><summary>See the rules the tree learned</summary><div class="in"><div class="treeout" id="treeOut"></div></div></details>
   </div>
-  <div class="tw"><table><thead><tr><th>Regulariser</th><th>Effect</th><th>Where</th></tr></thead><tbody>
-    <tr><td>L2 (ridge) / L1 (lasso)</td><td>Shrink weights / drive some exactly to zero</td><td>Logistic regression, XGBoost λ and α</td></tr>
-    <tr><td>Depth, min samples per leaf</td><td>Limit how finely space is partitioned</td><td>All tree models</td></tr>
-    <tr><td>Subsampling</td><td>Each learner sees a random subset</td><td>Bagging, stochastic boosting</td></tr>
-    <tr><td>Early stopping</td><td>Stop when validation loss stops improving</td><td>Boosting rounds, neural epochs</td></tr>
+  <div class="tw"><table><thead><tr><th>Way to stop a system memorising</th><th>What it does</th></tr></thead><tbody>
+    <tr><td>Limit how detailed the rules may get</td><td>Stops the system splitting data into ever smaller, meaningless groups</td></tr>
+    <tr><td>Require enough cases behind every rule</td><td>No decision rests on one or two transactions</td></tr>
+    <tr><td>Train on random subsets</td><td>Different parts of the system see different data, so quirks average out</td></tr>
+    <tr><td>Stop training when it stops improving</td><td>Training halts at the point where new data still benefits</td></tr>
   </tbody></table></div>
-  <p class="small muted">With few positives, regularise aggressively: the cost of an overfitted fraud model is paid in false positives on genuine customers.</p>
+  <p class="small muted">With few confirmed frauds to learn from, keep it simple: the cost of a memorising system is paid by genuine customers, in blocked payments.</p>
 </section>
 
 <section class="slide" data-title="Validation discipline" data-part="2 · AI & ML foundations">
@@ -634,10 +627,10 @@ figure.dimg figcaption{font-size:14px; color:var(--muted); margin-top:6px}
     <p class="small muted" style="margin-top:8px">Baseline for this customer: mean ₹2,500, standard deviation ₹1,800, usual hours 09:00–20:00, usual pace 1 transaction per hour.</p>
   </div>
   <div class="grid g2">
-    <div class="box"><h3>Velocity</h3><div class="formula small">v(e, W, k) = aggregate<sub>k</sub>{ e′ : same entity, t(e)−W ≤ t(e′) &lt; t(e) }</div><p class="small">Count, sum, distinct merchants over 1 min to 30 days, per card, device, IP or beneficiary. Note the strict “&lt;”: the current event must never count towards its own feature.</p></div>
-    <div class="box"><h3>Behavioural deviation</h3><div class="formula small">z = (x − μ<sub>entity</sub>) / (σ<sub>entity</sub> + ε)</div><p class="small">Unusual <i>for this customer</i>, not in absolute terms. Cold start is the weak spot: a new account has no baseline, and onboarding fraud hides there.</p></div>
-    <div class="box"><h3>Time</h3><div class="formula small">hour_sin = sin(2πh/24), hour_cos = cos(2πh/24)</div><p class="small">Hour 23 and hour 0 are neighbours. Add calendar effects: salary dates and festival seasons shift normal behaviour sharply.</p></div>
-    <div class="box"><h3>Geography</h3><div class="formula small">implied_speed = haversine(loc<sub>t</sub>, loc<sub>t−1</sub>) / Δt</div><p class="small">Faster than an aircraft means both transactions cannot be card-present by one person. Strong evidence, weak proof: VPNs and travel exist.</p></div>
+    <div class="box"><h3>Pace of activity</h3><p class="small">How many payments, and of what value, in the last minute, hour, day or month, per card, device or beneficiary, compared with what is usual for that customer.</p></div>
+    <div class="box"><h3>Deviation from the customer</h3><p class="small">How far this payment sits from what this customer normally does, rather than from a fixed limit. The weak spot: a new account has no history, and onboarding fraud hides there.</p></div>
+    <div class="box"><h3>Time of day and calendar</h3><p class="small">Is this hour normal for this customer? Midnight sits next to 11 p.m., not far from it. Salary dates and festival seasons shift normal behaviour sharply.</p></div>
+    <div class="box"><h3>Geography</h3><p class="small">How far apart two payments are, and how quickly. Faster than an aircraft means one person cannot have made both in person. Strong evidence, weak proof.</p></div>
   </div>
 </section>
 
@@ -649,20 +642,20 @@ figure.dimg figcaption{font-size:14px; color:var(--muted); margin-top:6px}
     <div class="box amber"><h3>Privacy boundary</h3><p class="small" style="margin:0">Keystroke dynamics, touch pressure and mouse movement are personal data. Under India's DPDP Act, treat biometric-adjacent telemetry as processing that needs notice and purpose limitation, not merely a technical integration.</p></div>
   </div>
   <h3 style="margin-top:22px">Missing data is often the signal</h3>
-  <div class="tw"><table><thead><tr><th>Mechanism</th><th>Meaning</th><th>Treatment</th></tr></thead><tbody>
-    <tr><td><b>MCAR</b></td><td>Missing completely at random</td><td>Deletion or simple imputation is safe</td></tr>
-    <tr><td><b>MAR</b></td><td>Depends on other observed fields</td><td>Model-based imputation</td></tr>
-    <tr><td><b>MNAR</b></td><td>Depends on the missing value itself</td><td>Do not impute it away: add a missing-indicator feature</td></tr>
-    <tr><td><b>Structural</b></td><td>The field cannot exist for this record type</td><td>Separate model or explicit category</td></tr>
+  <div class="tw"><table><thead><tr><th>Why a field is blank</th><th>Meaning</th><th>What to do</th></tr></thead><tbody>
+    <tr><td><b>Blank for no particular reason</b></td><td>Nothing is implied by the gap</td><td>Fill with a typical value, or drop the row</td></tr>
+    <tr><td><b>Blank because of something else we know</b></td><td>The gap follows from other fields</td><td>Estimate it from those fields</td></tr>
+    <tr><td><b>Blank because of what it would have said</b></td><td>The gap is itself informative</td><td>Keep “blank” as a signal in its own right</td></tr>
+    <tr><td><b>Cannot exist here</b></td><td>The field does not apply to this record type</td><td>Treat that record type separately</td></tr>
   </tbody></table></div>
-  <p class="small">A missing device fingerprint on a high-value transfer is a feature, not a gap. XGBoost, LightGBM and CatBoost learn a default direction for missing values natively.</p>
-  <h3 style="margin-top:22px">High-cardinality categoricals</h3>
-  <div class="tw"><table><thead><tr><th>Encoding</th><th>Trade-off</th></tr></thead><tbody>
-    <tr><td>One-hot</td><td>Explodes above a few hundred levels (merchants, BINs)</td></tr>
-    <tr><td>Frequency encoding</td><td>Cheap, robust, surprisingly effective for merchant IDs</td></tr>
-    <tr><td>Target / mean encoding</td><td>Powerful but <b>leaks badly</b> unless computed out-of-fold</td></tr>
-    <tr><td>Ordered target statistics (CatBoost)</td><td>Target encoding without the leakage: a strong default</td></tr>
-    <tr><td>Learned embeddings</td><td>Captures similarity between merchants; needs a neural model</td></tr>
+  <p class="small">A missing device fingerprint on a high-value transfer is a signal, not a gap. The common tools handle blanks sensibly on their own.</p>
+  <h3 style="margin-top:22px">Thousands of merchant and account codes</h3>
+  <div class="tw"><table><thead><tr><th>Approach</th><th>Trade-off</th></tr></thead><tbody>
+    <tr><td>A column for every merchant</td><td>Unmanageable beyond a few hundred</td></tr>
+    <tr><td>How often each appears</td><td>Cheap, robust and surprisingly effective</td></tr>
+    <tr><td>Each merchant’s past fraud rate</td><td>Powerful, but <b>leaks the answer</b> if done carelessly</td></tr>
+    <tr><td>Let the software handle it</td><td>Modern tools do this safely by default</td></tr>
+    <tr><td>Learned similarity</td><td>Groups merchants that behave alike; needs a heavier method</td></tr>
   </tbody></table></div>
 </section>
 
@@ -671,7 +664,7 @@ figure.dimg figcaption{font-size:14px; color:var(--muted); margin-top:6px}
   <h2>If it looks too good, it is leakage until proven otherwise</h2>
   <p class="lede">Leakage is using, in training, information that would not exist at the moment of prediction. It is the most common reason a model shines in development and fails in deployment.</p>
   <div class="tw"><table><thead><tr><th>Type</th><th>How it happens</th><th>Warning sign</th></tr></thead><tbody>
-    <tr><td><b>Target leakage</b></td><td>A feature encodes the outcome: chargeback flag, investigation status</td><td>Implausibly high AUC; one feature dominates</td></tr>
+    <tr><td><b>Target leakage</b></td><td>A feature encodes the outcome: chargeback flag, investigation status</td><td>Implausibly good results; one clue dominates</td></tr>
     <tr><td><b>Temporal leakage</b></td><td>Aggregates include the event itself or later events</td><td>Performance collapses under a chronological split</td></tr>
     <tr><td><b>Contamination</b></td><td>Scaling, imputation or SMOTE fitted before the split</td><td>Validation and test diverge sharply</td></tr>
     <tr><td><b>Group leakage</b></td><td>Same card, device or ring on both sides</td><td>Grouped split cuts measured performance</td></tr>
@@ -723,7 +716,7 @@ figure.dimg figcaption{font-size:14px; color:var(--muted); margin-top:6px}
       <div class="stat good"><b id="mRec">–</b><span>Recall = TP/(TP+FN)</span></div>
       <div class="stat warn"><b id="mPre">–</b><span>Precision = TP/(TP+FP)</span></div>
       <div class="stat"><b id="mF1">–</b><span>F1 (harmonic mean)</span></div>
-      <div class="stat"><b id="mMcc">–</b><span>MCC (uses all four cells)</span></div>
+      <div class="stat"><b id="mMcc">–</b><span>Balanced score using all four boxes</span></div>
       <div class="stat bad"><b id="mFA">–</b><span>Genuine customers disturbed</span></div>
     </div>
   </div>
@@ -731,9 +724,9 @@ figure.dimg figcaption{font-size:14px; color:var(--muted); margin-top:6px}
     <div class="box coral"><h3>False negative</h3><p class="small" style="margin:0">Transaction value, investigation, often reimbursement. The direct loss.</p></div>
     <div class="box amber"><h3>False positive</h3><p class="small" style="margin:0">A declined payment at checkout, a contact-centre call, lost goodwill.</p></div>
   </div>
-  <details class="rev" style="margin-top:14px"><summary>F1, Fβ and MCC in one minute</summary><div class="in">
-    <div class="formula small">F1 = 2PR/(P+R) &nbsp; Fβ = (1+β²)PR/(β²P+R) &nbsp; MCC = (TP·TN − FP·FN)/√((TP+FP)(TP+FN)(TN+FP)(TN+FN))</div>
-    <p class="small">F2 weights recall (a missed fraud costs several false alarms); F0.5 weights precision (investigator capacity is the constraint). Choose β <b>before</b> training, from the cost ratio. MCC is more stable under extreme imbalance because it uses true negatives.</p></div></details>
+  <details class="rev" style="margin-top:14px"><summary>When is one number enough?</summary><div class="in">
+    <p class="small">Precision and recall pull against each other, so people ask for a single figure. F1 combines them, and can be tilted towards whichever matters more: catching fraud, or not disturbing customers. Decide which matters more <b>before</b> the system is built, from the cost of each mistake, and put it in writing.</p>
+    <p class="small">Whatever single figure is quoted, always ask for the four counts behind it.</p></div></details>
 </section>
 
 <section class="slide" data-title="Operating point lab" data-part="4 · Imbalance & evaluation">
@@ -748,8 +741,8 @@ figure.dimg figcaption{font-size:14px; color:var(--muted); margin-top:6px}
       <div class="slider"><label for="opSep">Model quality <b id="opSepV">good</b></label><input type="range" id="opSep" min="1" max="5" value="3"></div>
     </div>
     <div class="grid g2" style="margin-top:14px">
-      <div><div class="small muted">ROC curve (TPR vs FPR)</div><div id="opRoc"></div><div class="small">AUC-ROC <b id="opAucR">–</b></div></div>
-      <div><div class="small muted">Precision–recall curve</div><div id="opPr"></div><div class="small">AUC-PR <b id="opAucP">–</b> <span class="muted">(random = fraud rate)</span></div></div>
+      <div><div class="small muted">ROC curve (TPR vs FPR)</div><div id="opRoc"></div><div class="small">Overall quality <b id="opAucR">–</b></div></div>
+      <div><div class="small muted">Precision–recall curve</div><div id="opPr"></div><div class="small">Overall quality <b id="opAucP">–</b> <span class="muted">(guessing would score about the fraud rate)</span></div></div>
     </div>
     <div class="grid g3" style="margin-top:14px">
       <div class="stat good"><b id="opTP">–</b><span>frauds caught (recall)</span></div>
@@ -767,7 +760,7 @@ figure.dimg figcaption{font-size:14px; color:var(--muted); margin-top:6px}
     <button class="btn small ghost" id="opBest">Cheapest threshold within capacity</button>
   </div>
   <div class="grid g2">
-    <div class="box"><h3>Why PR beats ROC here</h3><p class="small">FPR divides by true negatives, an enormous number, so thousands of false alarms barely move the ROC curve. Precision divides by alerts, so every false alarm shows. Report <b>AUC-PR</b> as the headline.</p></div>
+    <div class="box"><h3>Why PR beats ROC here</h3><p class="small">The first curve compares false alarms against the millions of genuine transactions, so thousands of them barely register. Precision divides by alerts, so every false alarm shows. Ask for the precision–recall picture, not the flattering one.</p></div>
     <div class="box"><h3>Bands, not a single line</h3><p class="small"><b>Allow</b> below τ₁, <b>challenge</b> (OTP, call-back) between τ₁ and τ₂, <b>block</b> above τ₂. Most value sits in the middle band: one extra question rarely upsets an honest customer.</p></div>
   </div>
   <div class="key"><b>Capacity is the constraint.</b> A model producing 2,000 alerts for a team that reviews 200 has not improved detection; it has moved the bottleneck. Compare models on <b>precision@k</b>, where k is what your team can actually work.</div>
@@ -781,37 +774,37 @@ figure.dimg figcaption{font-size:14px; color:var(--muted); margin-top:6px}
     <tr><td>Random oversampling</td><td>Duplicate fraud rows</td><td>Memorises individual frauds</td></tr>
     <tr><td><b>SMOTE</b></td><td>Interpolate synthetic frauds between neighbours</td><td>Implausible records on mixed-type data</td></tr>
     <tr><td>EasyEnsemble</td><td>Models on balanced subsamples, combined</td><td>Strong, but costlier to train</td></tr>
-    <tr><td><b>Class weights</b></td><td>Raise the loss for missed fraud (<code>scale_pos_weight</code>)</td><td>Distorts probabilities: recalibrate</td></tr>
-    <tr><td>Focal loss</td><td>Down-weight easy negatives (γ ≈ 2)</td><td>Needs a custom objective</td></tr>
+    <tr><td><b>Weighting</b></td><td>Tell training that a missed fraud matters more than a false alarm</td><td>Scores stop being true probabilities: correct them afterwards</td></tr>
+    <tr><td>Focus on hard cases</td><td>Give obvious genuine transactions less influence in training</td><td>Needs more specialised setup</td></tr>
   </tbody></table></div>
   <div class="grid g2" style="margin-top:16px">
-    <div class="box coral"><h3>Four SMOTE pitfalls</h3><ol class="clean small"><li><b>Before the split</b>, it copies test frauds into training. Resample inside each training fold only.</li><li>Interpolating one-hot merchants gives “0.4 of one merchant”. Use SMOTE-NC.</li><li>The midpoint between card testing and bust-out resembles neither.</li><li>It changes the base rate, so scores stop being probabilities.</li></ol></div>
-    <div class="box teal"><h3>Recommended order</h3><ol class="clean small"><li>Unweighted model + threshold tuning</li><li>Then class weights</li><li>Then anything more elaborate</li></ol><p class="small" style="margin:0">On tabular fraud data, class weighting in a boosted tree usually matches or beats SMOTE at a fraction of the complexity.</p></div>
+    <div class="box coral"><h3>Four SMOTE pitfalls</h3><ol class="clean small"><li>Done before the data is split, it copies test frauds into training and the results become meaningless.</li><li>Averaging two merchants or two channels produces a record that could not exist.</li><li>The midpoint between card testing and bust-out resembles neither.</li><li>It changes how common fraud appears to be, so the scores stop meaning what they say.</li></ol></div>
+    <div class="box teal"><h3>Recommended order</h3><ol class="clean small"><li>A plain system, with the action line tuned</li><li>Then weighting missed fraud more heavily</li><li>Then anything more elaborate</li></ol><p class="small" style="margin:0">On transaction data, simple weighting usually matches or beats synthetic data at a fraction of the complexity.</p></div>
   </div>
   <h3 style="margin-top:22px">Calibration: is a score of 0.10 really a 10% chance?</h3>
   <div class="grid g2" style="align-items:center">
     <div id="calViz"></div>
-    <div><p class="small">A model can <b>rank</b> well while being badly <b>calibrated</b>. Expected-loss sums, banded thresholds and consortium score-sharing all treat the output as a probability.</p>
-      <div class="row"><button class="chip on" data-cal="0">Well calibrated</button><button class="chip" data-cal="1">After SMOTE / weights</button><button class="chip" data-cal="2">After isotonic fix</button></div>
-      <p class="small muted" style="margin-top:8px">Fix with Platt scaling or isotonic regression on a later, unresampled sample. Calibration drift is often the first visible symptom of population drift.</p></div>
+    <div><p class="small">A system can put cases in the right order and still produce scores that do not mean what they say. That matters whenever the score is used as a number: expected losses, bands, or sharing with another institution.</p>
+      <div class="row"><button class="chip on" data-cal="0">Well calibrated</button><button class="chip" data-cal="1">After SMOTE / weights</button><button class="chip" data-cal="2">After correction</button></div>
+      <p class="small muted">It is corrected by a simple adjustment step on recent data. Scores drifting away from reality is often the first visible sign that the traffic has changed.</p></div>
   </div>
 </section>
 <!-- ============ MODULE 5 ============ -->
 <section class="slide" data-title="Logistic regression and trees" data-part="5 · The models">
   <div class="part p-m5">Module 5 · The models</div>
-  <h2>The interpretable baselines</h2>
+  <h2>The two methods you can explain to anyone</h2>
   <div class="grid g2">
     <div class="box">
       <h3>Logistic regression</h3>
-      <div class="formula small">p̂ = σ(wᵀx + b) = 1 / (1 + e^−(wᵀx+b))</div>
-      <p class="small">Linear in the log-odds: each coefficient is the change in log-odds per unit of its feature. Calibrated, fast, auditable.</p>
-      <p class="small"><b>Weakness:</b> sees only the interactions you engineer. <b>Role:</b> the regulatory baseline. If a complex model can't beat a well-specified logistic regression on AUC-PR, its complexity isn't earning its keep.</p>
+      
+      <p class="small">Each clue is given a weight, the weights are added up, and the total becomes a score. Because the weights can be read, you can say exactly why a case scored as it did.</p>
+      <p class="small"><b>Weakness:</b> it treats clues one at a time unless told how to combine them. <b>Role:</b> the benchmark. If an elaborate system cannot beat this, the complexity is not earning its keep.</p>
     </div>
     <div class="box">
       <h3>Decision tree</h3>
-      <div class="formula small">Gini(S) = 1 − Σ pₖ² &nbsp; Gain = I(parent) − Σ (nᶜ/n) I(child)</div>
-      <p class="small">Recursive yes/no splits chosen to purify the children. Captures interactions automatically, needs no scaling, and the rules can be read aloud.</p>
-      <p class="small"><b>Weakness:</b> high variance. A single tree is a poor fraud model but an excellent explanatory device.</p>
+      
+      <p class="small">A flowchart of yes/no questions: “Is the amount above ₹20,000?”, “Is the device new?”. The system chooses the questions from the data, and the finished flowchart can be read aloud in a meeting.</p>
+      <p class="small"><b>Weakness:</b> one flowchart alone is unreliable and shifts a lot with the data. A poor detector on its own, and an excellent way to explain the idea.</p>
     </div>
   </div>
   <div class="lab" style="border-color:var(--amber-bright)">
@@ -834,8 +827,8 @@ figure.dimg figcaption{font-size:14px; color:var(--muted); margin-top:6px}
   <div class="part p-m5">Module 5 · The models</div>
   <h2>Bagging reduces variance. Boosting reduces bias.</h2>
   <div class="grid g2">
-    <div class="box teal"><h3>Random Forest (bagging)</h3><div class="formula small">f̂(x) = (1/B) Σ T_b(x) &nbsp; Var ≈ ρσ² + (1−ρ)σ²/B</div><p class="small">Many deep trees on bootstrap samples, each split considering a random subset of features, averaged. Hard to overfit, tolerant of noisy labels. A strong low-maintenance baseline.</p></div>
-    <div class="box amber"><h3>Gradient boosting</h3><div class="formula small">F_m(x) = F_{m−1}(x) + ν · h_m(x)</div><p class="small">Shallow trees built in sequence, each fitted to the errors (gradients) of the ensemble so far. Composes many small splits into exactly the non-linear, interaction-heavy boundary fraud needs.</p></div>
+    <div class="box teal"><h3>Many flowcharts, voting</h3><p class="small">Build hundreds of flowcharts, each on a random slice of the data, and let them vote. Individual quirks cancel out. Tolerant of imperfect labels and a strong low-maintenance choice.</p></div>
+    <div class="box amber"><h3>Correcting the mistakes, in turn</h3><p class="small">Build one simple flowchart, see which cases it got wrong, then build the next one to fix exactly those, and repeat. Hundreds of small corrections add up to the most accurate method on transaction data today.</p></div>
   </div>
   <div class="lab">
     <div class="labhead"><span class="badge">Watch</span><strong>Boosting, one round at a time</strong></div>
@@ -848,22 +841,20 @@ figure.dimg figcaption{font-size:14px; color:var(--muted); margin-top:6px}
     <tr><td><b>LightGBM</b></td><td>Leaf-wise growth, GOSS sampling</td><td>Very large datasets; fastest training</td></tr>
     <tr><td><b>CatBoost</b></td><td>Ordered boosting and ordered target statistics</td><td>Many high-cardinality categoricals: merchants, BINs, beneficiaries</td></tr>
   </tbody></table></div>
-  <details class="rev" style="margin-top:14px"><summary>Tuning boosted trees for imbalanced fraud data</summary><div class="in"><div class="tw"><table><thead><tr><th>Parameter</th><th>Direction</th><th>Reason</th></tr></thead><tbody>
-    <tr><td>scale_pos_weight</td><td>Towards n₋/n₊</td><td>Restores gradient for the rare class</td></tr>
-    <tr><td>max_depth</td><td>Moderate (3–8)</td><td>Deep trees memorise individual frauds</td></tr>
-    <tr><td>min_child_weight</td><td>Raise</td><td>No leaf supported by one or two frauds</td></tr>
-    <tr><td>learning_rate</td><td>Lower, more rounds</td><td>Smoother fit; early stopping decides the count</td></tr>
-    <tr><td>eval_metric</td><td><b>aucpr</b>, not auc or error</td><td>Optimise what reflects operations</td></tr>
-    <tr><td>early_stopping</td><td>Always, on a chronological fold</td><td>Honest round count</td></tr>
-  </tbody></table></div><p class="small">A sensible card-fraud start: learning_rate 0.05, max_depth 6, min_child_weight 5, subsample 0.8, colsample_bytree 0.8.</p></div></details>
-  <div class="key"><b>Library choice matters less than one good feature.</b> Choose on engineering fit, then tune. Start with XGBoost plus class weights plus chronological validation.</div>
+  <details class="rev" style="margin-top:14px"><summary>Settings that matter when fraud is rare</summary><div class="in">
+ <ul class="clean small"><li>Tell the system that a missed fraud matters more than a false alarm</li>
+ <li>Keep the flowcharts shallow, so no rule rests on a handful of cases</li>
+ <li>Judge progress on how well it ranks real fraud, not on overall accuracy</li>
+ <li>Stop training as soon as results on unseen months stop improving</li></ul>
+ <p class="small">These are settings a vendor or data team should be able to explain in exactly these terms.</p></div></details>
+  <div class="key"><b>One good clue is worth more than a change of software.</b> The three common tools are near-equivalent; what separates good systems from poor ones is the data fed to them and how honestly they are tested.</div>
 </section>
 
 <section class="slide" data-title="Explaining a score: SHAP" data-part="5 · The models">
   <div class="part p-m5">Module 5 · The models</div>
   <h2>From a score to reasons an officer can repeat</h2>
-  <div class="formula">f(x) = φ₀ + Σⱼ φⱼ(x)</div>
-  <p class="lede">SHAP splits each prediction exactly into a base value plus one contribution per feature. That additivity is what makes per-decision reason codes possible. Pick a case.</p>
+  
+  <p class="lede">A method called SHAP splits every score into its parts: it starts from the average case and shows how much each clue pushed this one up or down. That is what makes a per-decision explanation possible. Pick a case.</p>
   <div class="lab">
     <div class="labhead"><span class="badge">Try it</span><strong>Why was this flagged?</strong></div>
     <div class="row" id="shapBtns" style="margin-bottom:12px"><button class="chip on" data-shap="0">UPI transfer at 02:40</button><button class="chip" data-shap="1">Card testing burst</button><button class="chip" data-shap="2">Salary-day payment</button></div>
@@ -871,9 +862,9 @@ figure.dimg figcaption{font-size:14px; color:var(--muted); margin-top:6px}
     <p id="shapMsg" class="small" style="margin-top:8px"></p>
   </div>
   <div class="grid g3">
-    <div class="box"><h3>Split importance</h3><p class="small">Fast, but biased to high-cardinality features and unstable when features correlate.</p></div>
-    <div class="box"><h3>Permutation importance</h3><p class="small">Shuffle a feature, measure the drop. Closer to “importance”, misleading with correlated inputs.</p></div>
-    <div class="box teal"><h3>SHAP</h3><p class="small">Additive, locally accurate, exact for trees (TreeSHAP). The basis for reason codes.</p></div>
+    <div class="box"><h3>Overall importance</h3><p class="small">Which clues the system relies on across all cases. Quick, but it flatters clues that simply take many different values.</p></div>
+    <div class="box"><h3>Remove-and-test</h3><p class="small">Scramble one clue and see how much performance drops. Closer to real importance, but misleading when two clues say the same thing.</p></div>
+    <div class="box teal"><h3>SHAP: per case</h3><p class="small">Explains one decision rather than the system as a whole. This is what a customer, an auditor or a court will ask for.</p></div>
   </div>
   <div class="tip"><b>Caution:</b> SHAP explains the model's reasoning. It does not establish causation and must never be presented as such.</div>
 </section>
@@ -881,7 +872,7 @@ figure.dimg figcaption{font-size:14px; color:var(--muted); margin-top:6px}
 <section class="slide" data-title="Anomaly detection" data-part="5 · The models">
   <div class="part p-m5">Module 5 · The models</div>
   <h2>Learning what normal looks like</h2>
-  <p class="lede">With no labels at all, unsupervised methods model normality and score deviation. Isolation Forest inverts the idea: anomalies are isolated by fewer random cuts.</p>
+  <p class="lede">With no confirmed cases to learn from, these methods learn what normal looks like and report what sits far from it. The one below rests on a simple idea: an unusual transaction can be separated from the crowd with very few questions.</p>
   <div class="lab">
     <div class="labhead"><span class="badge">Live</span><strong>Isolation Forest on 300 transactions</strong></div>
     <div class="grid g2" style="align-items:start">
@@ -889,17 +880,17 @@ figure.dimg figcaption{font-size:14px; color:var(--muted); margin-top:6px}
       <div>
         <div class="slider"><label for="isoCut">Flag the top <b id="isoCutV">3%</b></label><input type="range" id="isoCut" min="1" max="15" value="3"></div>
         <p class="small" id="isoMsg"></p>
-        <div class="formula small">s(x,n) = 2^(−E[h(x)]/c(n))</div>
-        <p class="small muted">h(x) is the number of random splits needed to isolate x. Near 1 means anomalous, near 0.5 means normal. Axes: amount (log scale) and hour of day. Red rings are the real frauds, which the model never saw.</p>
+        
+        <p class="small muted">The fewer random questions it takes to separate a transaction from the rest, the more unusual it is. Axes: amount and hour of day. Red rings are the real frauds, which the system never saw.</p>
         <button class="btn small ghost" id="isoNew">New data</button>
       </div>
     </div>
   </div>
   <div class="tw"><table><thead><tr><th>Method</th><th>Idea</th><th>Use it when</th></tr></thead><tbody>
-    <tr><td><b>Isolation Forest</b></td><td>Few random splits isolate an outlier</td><td>Scale and simplicity; a first unsupervised layer</td></tr>
-    <tr><td><b>Local Outlier Factor</b></td><td>Sparse point among dense neighbours</td><td>Normal behaviour differs by segment</td></tr>
+    <tr><td><b>Isolation Forest</b></td><td>Unusual cases are separated with very few random questions</td><td>Scale and simplicity; a first unsupervised layer</td></tr>
+    <tr><td><b>Local Outlier Factor</b></td><td>A lone point where others sit in a crowd</td><td>Normal behaviour differs by segment</td></tr>
     <tr><td><b>One-class SVM</b></td><td>Boundary around normal data</td><td>Small, clean, well-scaled data only</td></tr>
-    <tr><td><b>Autoencoder</b></td><td>Reconstruct normal; error = anomaly score</td><td>Rich inputs, novel typologies</td></tr>
+    <tr><td><b>Autoencoder</b></td><td>Learn to copy normal transactions; whatever copies badly is unfamiliar</td><td>Rich inputs, novel typologies</td></tr>
     <tr><td><b>DBSCAN / HDBSCAN</b></td><td>Density clusters; sparse points are noise</td><td>Segmentation, hotspots, rings</td></tr>
   </tbody></table></div>
   <div class="key"><b>Unusual is not fraudulent.</b> Wealthy customers, corporate accounts and festival peaks all look anomalous. The practical trick: feed the anomaly score into the supervised model as a feature, rather than acting on it directly.</div>
@@ -907,9 +898,9 @@ figure.dimg figcaption{font-size:14px; color:var(--muted); margin-top:6px}
 
 <section class="slide" data-title="Deep learning where structure demands it" data-part="5 · The models">
   <div class="part p-m5">Module 5 · The models</div>
-  <h2>Deep learning: earn the cost, or don't pay it</h2>
-  <div class="formula">z = Σ wⱼxⱼ + b, &nbsp; a = g(z) &nbsp;&nbsp;·&nbsp;&nbsp; W ← W − η ∂L/∂W</div>
-  <p class="small">A neuron is a weighted sum followed by a non-linearity; backpropagation applies the chain rule backwards and takes a gradient step. Expressive power is not the constraint in fraud detection; <b>labelled positives are</b>.</p>
+  <h2>Deep learning: where it earns its cost</h2>
+  
+  <p class="small">Deep learning stacks many simple steps so the system works out its own clues from raw material: an image, a sentence, a sequence of actions. Its ability is rarely the limit in fraud work. <b>The number of confirmed cases to learn from is.</b></p>
   <div class="tabs" role="tablist" data-tabs="dl">
     <button role="tab" aria-selected="true" data-panel="dl1">Tabular MLP</button>
     <button role="tab" aria-selected="false" data-panel="dl2">CNN: documents &amp; faces</button>
@@ -917,11 +908,11 @@ figure.dimg figcaption{font-size:14px; color:var(--muted); margin-top:6px}
     <button role="tab" aria-selected="false" data-panel="dl4">Transformers</button>
     <button role="tab" aria-selected="false" data-panel="dl5">Autoencoders</button>
   </div>
-  <div class="tabpanel" id="dl1"><div class="grid g2"><div class="box"><h3>Why trees usually win on tables</h3><p class="small">Tabular features are heterogeneous and often irrelevant. Axis-aligned splits handle this natively; a dense layer must learn to ignore inputs and prefers smooth functions.</p></div><div class="box teal"><h3>The useful hybrid</h3><p class="small">Learn <b>entity embeddings</b> for merchants and BINs in a small network, then feed them into a boosted tree. Reserve an “unknown” token for new merchants. Use stratified batching: a large batch at 0.2% prevalence may contain no fraud at all.</p></div></div></div>
-  <div class="tabpanel" id="dl2" hidden><div class="grid g2"><div class="box"><h3>Document forensics</h3><p class="small">Font and spacing inconsistency, missing security features, template mismatch. Error-level analysis localises the edited region. Transfer learning from pre-trained backbones is essential because forged-document datasets are tiny.</p></div><div class="box"><h3>Face embeddings</h3><div class="formula small">L = max(0, ‖f(a)−f(p)‖² − ‖f(a)−f(n)‖² + α)</div><p class="small"><b>1:1 verification</b> (selfie vs document) and <b>1:N identification</b> (is this face already on file under another name?). Error rates differ across demographic groups: test disaggregated.</p></div></div></div>
-  <div class="tabpanel" id="dl3" hidden><div class="grid g2"><div class="box"><h3>Sequences, not rows</h3><p class="small">LSTM and GRU gates preserve gradients over long sequences. Uses: account takeover from login-navigation sequences, bust-out building over weeks, card-testing bursts.</p></div><div class="box amber"><h3>The pragmatic verdict</h3><p class="small">Well-built velocity features often capture most of what a sequence model learns, at a fraction of the operational cost. Sequence models earn their place when the <i>order</i> carries the signal.</p></div></div></div>
-  <div class="tabpanel" id="dl4" hidden><div class="grid g2"><div class="box"><h3>Attention</h3><div class="formula small">Attention(Q,K,V) = softmax(QKᵀ/√dₖ)V</div><p class="small">Every position relates to every other in one step, so a payment can be linked to a specific earlier login or first transfer to the same beneficiary.</p></div><div class="box"><h3>Where evidence stands</h3><p class="small">TabNet, FT-Transformer and SAINT compete on large tables, but boosted trees remain at least competitive at the sizes most institutions hold. Deep models earn their place when sequence, text or images must be fused with the table.</p></div></div></div>
-  <div class="tabpanel" id="dl5" hidden><div class="grid g2"><div class="box"><h3>How it works</h3><div class="formula small">x → encoder → z (k ≪ d) → decoder → x̂ ; score = ‖x − x̂‖²</div><p class="small">Train on genuine transactions only. Unfamiliar patterns reconstruct poorly. Set the threshold from review capacity, not an arbitrary sigma.</p></div><div class="box coral"><h3>Hazard</h3><p class="small">If fraud contaminates the “normal” training set, the model learns to reconstruct it. High error means unusual, not criminal.</p></div></div></div>
+  <div class="tabpanel" id="dl1"><div class="grid g2"><div class="box"><h3>Why trees usually win on tables</h3><p class="small">Transaction tables mix very different kinds of column, many of them irrelevant. Flowchart-style methods handle that naturally; deep networks must learn what to ignore, and usually do it worse.</p></div><div class="box teal"><h3>The useful hybrid</h3><p class="small">Let a small network learn which merchants behave alike, then hand that summary to the flowchart-based system. Leave a slot for merchants never seen before.</p></div></div></div>
+  <div class="tabpanel" id="dl2" hidden><div class="grid g2"><div class="box"><h3>Document forensics</h3><p class="small">Fonts and spacing that do not match the official template, missing security features, and the traces an edited region leaves behind. These systems are adapted from general image models, because genuine forgery examples are scarce.</p></div><div class="box"><h3>Face embeddings</h3><p class="small">Two different questions: does this selfie match this document, and is this face already on file under another name? Error rates differ across groups of people, so performance must be tested group by group.</p></div></div></div>
+  <div class="tabpanel" id="dl3" hidden><div class="grid g2"><div class="box"><h3>Sequences, not rows</h3><p class="small">Some systems read a customer’s actions in order, like a sentence: login, change of details, new payee, transfer. Useful for account takeover and for frauds that build over weeks.</p></div><div class="box amber"><h3>The pragmatic verdict</h3><p class="small">Good counts of recent activity often capture most of the same signal at a fraction of the cost. Order-reading systems earn their place only when the <i>sequence itself</i> is the evidence.</p></div></div></div>
+  <div class="tabpanel" id="dl4" hidden><div class="grid g2"><div class="box"><h3>Reading the whole picture at once</h3><p class="small">Newer systems can relate any action to any other in one step, so a payment can be linked directly to a specific earlier login, however much happened in between.</p></div><div class="box"><h3>Where evidence stands</h3><p class="small">On plain transaction tables of the size most institutions hold, simpler methods remain at least as good. Deep models earn their place when text, images or sequences must be combined with the table.</p></div></div></div>
+  <div class="tabpanel" id="dl5" hidden><div class="grid g2"><div class="box"><h3>Learning normal by copying it</h3><p class="small">Show the system only genuine transactions until it can reproduce them faithfully. Whatever it reproduces badly is unfamiliar and worth a look. Set the cut-off from how many cases the team can review.</p></div><div class="box coral"><h3>Hazard</h3><p class="small">If undetected fraud sits among the “normal” examples, the system learns to treat it as normal. And unfamiliar still does not mean criminal.</p></div></div></div>
 </section>
 
 <section class="slide" data-title="NLP and language models" data-part="5 · The models">
@@ -964,7 +955,7 @@ figure.dimg figcaption{font-size:14px; color:var(--muted); margin-top:6px}
     <tr><td>Neighbourhood risk</td><td>Share of neighbours already known bad: powerful, and legally sensitive</td></tr>
   </tbody></table></div>
   <div class="grid g2" style="margin-top:14px">
-    <div class="box"><h3>Graph neural networks</h3><div class="formula small">h_v⁽ˡ⁺¹⁾ = σ(W · AGG{h_u⁽ˡ⁾ : u ∈ N(v)} + B·h_v⁽ˡ⁾)</div><p class="small">GraphSAGE is inductive and scores new accounts; GAT learns which neighbours matter; temporal GNNs stop information flowing backwards in time.</p></div>
+    <div class="box"><h3>Learning directly from the network</h3><p class="small">Newer methods let an account’s score depend on the company it keeps, extend to accounts opened yesterday, and respect the order of events so nothing from the future leaks in.</p></div>
     <div class="box teal"><h3>Recommended progression</h3><ol class="clean small"><li>Graph features added to the existing model</li><li>Community detection, run overnight</li><li>A GNN, only if measured improvement justifies it</li></ol><p class="small" style="margin:0">Most institutions never need step 3.</p></div>
   </div>
 </section>
@@ -1022,16 +1013,16 @@ figure.dimg figcaption{font-size:14px; color:var(--muted); margin-top:6px}
 <section class="slide" data-title="Drift, monitoring and retraining" data-part="6 · Systems in production">
   <div class="part p-m6">Module 6 · Systems in production</div>
   <h2>Models decay. Measure how fast.</h2>
-  <div class="formula">PSI = Σ_b (p_b − q_b) · ln(p_b / q_b)</div>
+  
   <div class="lab">
-    <div class="labhead"><span class="badge">Try it</span><strong>Population Stability Index for “transaction amount”</strong></div>
+    <div class="labhead"><span class="badge">Try it</span><strong>Has the traffic changed? Transaction amounts, this month vs training</strong></div>
     <div class="row" id="psiBtns" style="margin-bottom:10px"><button class="chip on" data-psi="0">Ordinary month</button><button class="chip" data-psi="1">Festival season</button><button class="chip" data-psi="2">New UPI product launched</button><button class="chip" data-psi="3">Card-testing wave</button></div>
     <div id="psiViz"></div>
     <p id="psiMsg" class="small"></p>
   </div>
   <div class="grid g3">
-    <div class="box"><h3>Data drift</h3><p class="small">Inputs shift: new channel, new merchants, season. Detect with PSI or KS per feature. PSI above about 0.2 warrants investigation.</p></div>
-    <div class="box"><h3>Concept drift</h3><p class="small">The relationship changes because fraudsters adapt. Detect by decay in precision and recall on matured labels, and by calibration drift before that.</p></div>
+    <div class="box"><h3>Data drift</h3><p class="small">The traffic changes: a new channel, new merchants, a festival season. A standard stability check compares this month with the training period, column by column, and flags large shifts.</p></div>
+    <div class="box"><h3>Concept drift</h3><p class="small">Fraudsters adapt, so yesterday’s patterns stop holding. Spot it as detection rates fall on confirmed outcomes, and earlier still as the scores stop meaning what they used to.</p></div>
     <div class="box"><h3>Label delay</h3><p class="small">Outcomes arrive weeks later. Watch leading indicators: score distribution, alert volume, feature drift.</p></div>
   </div>
   <div class="key"><b>Champion–challenger:</b> run the new model in shadow against live traffic, compare on matured labels, and promote only on evidence. Never promote on offline metrics alone. Scheduled retraining plus drift-triggered retraining, with the same validation discipline as the first build.</div>
@@ -1460,7 +1451,7 @@ buildQuiz($('#exitQuiz'),$('#exitScore'),[
  {q:'A random train/test split on transaction data mainly risks…',o:['Slower training','Optimistic results from seeing the future','Too few features'],a:1,e:'Split chronologically, and keep entities on one side.'},
  {q:'Who should own the decision threshold?',o:['The data science team','Risk and compliance','The vendor'],a:1,e:'It trades customer friction against loss: a business judgement.'},
  {q:'A graph feature says an account transacted with known mules. It should be used to…',o:['Freeze the account','Prioritise it for human review','Delete it from the model'],a:1,e:'Guilt by association guides attention, never decides.'},
- {q:'An AUC-ROC of 0.995 on a real card portfolio should trigger…',o:['A celebration','A leakage audit','Immediate deployment'],a:1,e:'Too good is leakage until proven otherwise.'},
+ {q:'A near-perfect result on a real card portfolio should trigger…',o:['A celebration','A leakage audit','Immediate deployment'],a:1,e:'Too good is leakage until proven otherwise.'},
  {q:'The cheapest, highest-value first step for most institutions is…',o:['Buying a deep-learning platform','Recording the outcome of every case','Hiring a vendor for graph AI'],a:1,e:'A system can only learn from outcomes that were written down.'}],'q.exit');
 
 /* ================= validation viz ================= */
@@ -1654,7 +1645,7 @@ const PSIM=['Stable. No action.','Seasonal shift. Expected, but calibrate thresh
 function psiDraw(k){const q=[0.20,0.30,0.30,0.15,0.05],p=PSIS[k];let psi=0;p.forEach((v,i)=>psi+=(v-q[i])*Math.log(v/q[i]));
  const W=560,H=200,bw=(W-40)/5;let g='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="display:block">';p.forEach((v,i)=>{const x=20+i*bw;g+='<rect x="'+(x+8)+'" y="'+(170-q[i]*380)+'" width="'+(bw/2-10)+'" height="'+(q[i]*380)+'" fill="var(--teal)" opacity=".7"/><rect x="'+(x+bw/2)+'" y="'+(170-v*380)+'" width="'+(bw/2-10)+'" height="'+(v*380)+'" fill="var(--amber-bright)"/><text x="'+(x+bw/2)+'" y="190" font-size="12" text-anchor="middle" fill="var(--muted)">'+PSIB[i]+'</text>'});
  $('#psiViz').innerHTML=g+'</svg><div class="legend"><span><i style="background:var(--teal)"></i>training period</span><span><i style="background:var(--amber-bright)"></i>this month</span></div>';
- $('#psiMsg').innerHTML='PSI = <b>'+psi.toFixed(3)+'</b> '+(psi<0.1?'<span style="color:var(--green)">(stable, below 0.1)</span>':psi<0.2?'<span style="color:var(--amber)">(moderate, 0.1–0.2)</span>':'<span style="color:var(--coral)">(significant, above 0.2)</span>')+'. '+PSIM[k]}
+ $('#psiMsg').innerHTML='Stability index = <b>'+psi.toFixed(3)+'</b> '+(psi<0.1?'<span style="color:var(--green)">(stable, below 0.1)</span>':psi<0.2?'<span style="color:var(--amber)">(moderate, 0.1–0.2)</span>':'<span style="color:var(--coral)">(significant, above 0.2)</span>')+'. '+PSIM[k]}
 chipGroup('#psiBtns .chip',b=>psiDraw(+b.dataset.psi)); psiDraw(0);
 /* ================= case explorer ================= */
 const ACTS=['Let it proceed','Add friction / verify','Hold and open a case'];
